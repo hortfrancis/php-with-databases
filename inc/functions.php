@@ -7,8 +7,29 @@ function full_catalog_array()
     try {
         // Returning a PDOStatement object
         $results = $conn->query("SELECT media_id, title, category, img FROM Media");
-        // echo 'Retrieved data! :)';
 
+    } catch (Exception $e) {
+        echo 'Could not retrieve data: ' . $e->getMessage();;
+        exit;
+    }
+
+    $catalog = $results->fetchAll();
+    return $catalog;
+}
+
+function random_catalog_array()
+{
+    include('connection.php');
+
+    try {
+        // Returning a PDOStatement object
+        $results = $conn->query("
+        SELECT media_id, title, category, img 
+        FROM Media
+        ORDER BY RAND()
+        LIMIT 4
+        ;");
+        
     } catch (Exception $e) {
         echo 'Could not retrieve data: ' . $e->getMessage();;
         exit;
@@ -68,7 +89,7 @@ function single_item_array($id)
     return $item;
 }
 
-function get_item_html($id, $item)
+function get_item_html($item)
 {
     $output = "<li><a href='details.php?id="
         . $item['media_id'] . "'><img src='"

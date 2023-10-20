@@ -1,6 +1,7 @@
 <?php 
-include("inc/data.php");
+
 include("inc/functions.php");
+$catalog = full_catalog_array();
 
 if (isset($_GET["id"])) {
     $id = $_GET["id"];

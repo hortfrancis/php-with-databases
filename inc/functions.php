@@ -1,15 +1,102 @@
 <?php
 
-function full_catalog_array()
+function get_catalog_count($category = null)
+{
+    if (isset($category)) $category = strtolower($category);
+
+    include('connection.php');
+
+    try {
+        $query = 'SELECT COUNT(media_id) FROM Media';
+        if (!empty($category)) {
+            $result = $conn->prepare(
+                $query
+                    . ' WHERE LOWER(category) = ?'
+            );
+            $result->bindParam(1, $category, PDO::PARAM_STR);
+        } else {
+            $result = $conn->prepare($query);
+        }
+        $result->execute();
+    } catch (Exception $e) {
+        echo 'Bad query: ' . $e->getMessage();
+    }
+
+    $count = $result->fetchColumn(0);
+    return $count;
+}
+
+function full_catalog_array($limit = null, $offset = 0)
 {
     include('connection.php');
 
     try {
-        // Returning a PDOStatement object
-        $results = $conn->query("SELECT media_id, title, category, img FROM Media");
 
+        $query = "
+            SELECT media_id, title, category, img 
+            FROM Media
+            ORDER BY 
+            REPLACE(
+                REPLACE(
+                    REPLACE(title,'The ',''),
+                    'An ',
+                    ''
+                ),
+                'A ',
+                ''
+            )";
+        if (is_integer($limit)) {
+            $results = $conn->prepare($query . " LIMIT ? OFFSET ?");
+            $results->bindParam(1, $limit, PDO::PARAM_INT);
+            $results->bindParam(2, $offset, PDO::PARAM_INT);
+        } else {
+            $results = $conn->prepare($sql);
+            echo 'in else';
+        }
+        $results->execute();
     } catch (Exception $e) {
-        echo 'Could not retrieve data: ' . $e->getMessage();;
+        echo 'Could not retrieve data: ' . $e->getMessage();
+        exit;
+    }
+
+    $catalog = $results->fetchAll();
+    return $catalog;
+}
+
+function category_catalog_array($category, $limit = null, $offset = 0)
+{
+    include('connection.php');
+
+    strtolower($category);
+
+    try {
+        // Returning a PDOStatement object
+        $query = "
+        SELECT media_id, title, category, img 
+        FROM Media
+        WHERE LOWER(category) = ?
+        ORDER BY 
+        REPLACE(
+            REPLACE(
+                REPLACE(title,'The ',''),
+                'An ',
+                ''
+            ),
+            'A ',
+            ''
+        )";
+        if (is_integer($limit)) {
+            $results = $conn->prepare($query . ' LIMIT ? OFFSET ?');
+            $results->bindParam(1, $category, PDO::PARAM_STR);
+            $results->bindParam(2, $limit, PDO::PARAM_INT);
+            $results->bindParam(3, $offset, PDO::PARAM_INT);
+        } else {
+            $results = $conn->prepare($query);
+            $results->bindParam(1, $category, PDO::PARAM_STR);
+        }
+        $results->execute();
+    } catch (Exception $e) {
+        echo 'Could not retrieve data: ' . $e->getMessage();
         exit;
     }
 
@@ -29,9 +116,8 @@ function random_catalog_array()
         ORDER BY RAND()
         LIMIT 4
         ;");
-        
     } catch (Exception $e) {
-        echo 'Could not retrieve data: ' . $e->getMessage();;
+        echo 'Could not retrieve data: ' . $e->getMessage();
         exit;
     }
 

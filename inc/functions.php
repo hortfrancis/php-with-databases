@@ -175,6 +175,43 @@ function single_item_array($id)
     return $item;
 }
 
+function genre_array($category = null)
+{
+    // Normalise category string argument to lowercase
+    if (isset($category)) {
+        $category = strtolower($category);
+    }
+
+    // Access a connection to the database
+    include('connection.php');
+
+    try {
+        $query = "
+        SELECT genre, category
+        FROM Genres
+        JOIN Genre_Categories 
+        ON Genres.genre_id = Genre_Categories.genre_id 
+        ";
+        if (!empty($category)) {
+            $results = $conn->prepare($query
+                . "WHERE LOWER(category) = ?"
+                . "ORDER BY genre");
+            $results->bindParam(1, $category, PDO::PARAM_STR);
+        } else {
+            $results = $conn->prepare($query . "ORDER BY genre");
+        }
+        $results->execute();
+    } catch (Exception $e) {
+        echo 'Bad SQL query: ' . $e->getMessage();
+    }
+
+    $genres = array();
+    while ($row = $results->fetch(PDO::FETCH_ASSOC)) {
+        $genres[$row['category']][] = $row['genre'];
+    }
+    return $genres;
+}
+
 function get_item_html($item)
 {
     $output = "<li><a href='details.php?id="

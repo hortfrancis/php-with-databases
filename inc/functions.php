@@ -1,6 +1,6 @@
 <?php
 
-function get_catalog_count($category = null)
+function get_catalog_count($category = null, $search = null)
 {
     if (isset($category)) $category = strtolower($category);
 
@@ -8,7 +8,13 @@ function get_catalog_count($category = null)
 
     try {
         $query = 'SELECT COUNT(media_id) FROM Media';
-        if (!empty($category)) {
+        if (!empty($search)) {
+            $result = $conn->prepare(
+                $query
+                . " WHERE title LIKE ?"
+            );
+            $result->bindValue(1, '%' . $search . '%', PDO::PARAM_STR);
+        } elseif (!empty($category)) {
             $result = $conn->prepare(
                 $query
                     . ' WHERE LOWER(category) = ?'
@@ -93,6 +99,47 @@ function category_catalog_array($category, $limit = null, $offset = 0)
         } else {
             $results = $conn->prepare($query);
             $results->bindParam(1, $category, PDO::PARAM_STR);
+        }
+        $results->execute();
+    } catch (Exception $e) {
+        echo 'Could not retrieve data: ' . $e->getMessage();
+        exit;
+    }
+
+    $catalog = $results->fetchAll();
+    return $catalog;
+}
+
+function search_catalog_array($search, $limit = null, $offset = 0)
+{
+    include('connection.php');
+
+    strtolower($search);
+
+    try {
+        // Returning a PDOStatement object
+        $query = "
+        SELECT media_id, title, category, img 
+        FROM Media
+        WHERE title LIKE ?
+        ORDER BY 
+        REPLACE(
+            REPLACE(
+                REPLACE(title,'The ',''),
+                'An ',
+                ''
+            ),
+            'A ',
+            ''
+        )";
+        if (is_integer($limit)) {
+            $results = $conn->prepare($query . ' LIMIT ? OFFSET ?');
+            $results->bindValue(1, '%' . $search . '%', PDO::PARAM_STR);
+            $results->bindParam(2, $limit, PDO::PARAM_INT);
+            $results->bindParam(3, $offset, PDO::PARAM_INT);
+        } else {
+            $results = $conn->prepare($query);
+            $results->bindValue(1, '%' . $search . '%', PDO::PARAM_STR);
         }
         $results->execute();
     } catch (Exception $e) {
